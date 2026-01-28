@@ -75,16 +75,14 @@ local function show_dashboard()
 	local header = {
 		"",
 		"",
-		"                    _______       .__         ",
-		"  _____     ____  \\      \\___  _|__| _____  ",
-		" /     \\ /  _ \\ /   |   \\  \\/ /  |/     \\ ",
-		"|  Y Y   (  <_> )     |    \\   /|  |  Y Y  \\",
-		"|__|_|  /\\____/\\____|__  /\\_/ |__|__|_|  /",
-		"      \\/               \\/              \\/ ",
+		"                  _______       .__",
+		"    _____   ____  \\      \\___  _|__| _____",
+		"   /     \\ /  _ \\ /   |   \\  \\/ /  |/     \\",
+		"  |  Y Y  (  <_> )    |    \\   /|  |  Y Y  \\",
+		"  |__|_|  /\\____/\\____|__  /\\_/ |__|__|_|  /",
+		"        \\/               \\/              \\/ ",
 		"",
-		"                  Neovim " .. vim.version().major .. "." .. vim.version().minor,
-		"",
-		"",
+		"  Neovim " .. vim.version().major .. "." .. vim.version().minor,
 		"",
 	}
 
@@ -115,8 +113,8 @@ local function show_dashboard()
 		end
 		if vim.fn.filereadable(file) == 1 then
 			table.insert(recent_files, {
-				text = string.format("  %d. [%s]", counter, file),
-				path = file,
+				text = string.format("  %d. [%s]", counter, vim.fn.fnamemodify(file, ":~")),
+				path = file, -- keep absolute path for opening
 			})
 			counter = counter + 1
 		end
