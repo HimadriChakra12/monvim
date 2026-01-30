@@ -116,40 +116,127 @@ require("lazy").setup({
 		"nvim-tree/nvim-web-devicons",
 		enabled = vim.g.have_nerd_font,
 	},
-	{
-		"ibhagwan/fzf-lua",
-		dependencies = { "nvim-tree/nvim-web-devicons" }, -- optional
-		config = function()
-			local fzf = require("fzf-lua")
 
-			fzf.setup({
-				winopts = {
-					height = 0.95,
-					width = 0.95,
-					preview = {
-						vertical = "down:45%",
-						wrap = "nowrap",
+	{
+		"nvim-telescope/telescope.nvim",
+		event = "VimEnter",
+		dependencies = {
+			"nvim-lua/plenary.nvim",
+			{
+				"nvim-telescope/telescope-fzf-native.nvim",
+				build = "make",
+				cond = function()
+					return vim.fn.executable("make") == 1
+				end,
+			},
+			"nvim-telescope/telescope-ui-select.nvim",
+		},
+		config = function()
+			local telescope = require("telescope")
+			local themes = require("telescope.themes")
+
+			-- Adaptive layout function
+			local function get_layout()
+				local width = vim.o.columns
+				if width < 80 then
+					return "dropdown" -- very small screens: dropdown
+				elseif width < 120 then
+					return "vertical" -- small: vertical preview below
+				else
+					return "horizontal" -- wide: horizontal preview right
+				end
+			end
+
+			-- Preview height only valid for vertical layouts
+			local function get_vertical_preview_height()
+				local width = vim.o.columns
+				if width < 80 then
+					return 0 -- no preview for dropdown
+				elseif width < 120 then
+					return 0.3
+				else
+					return 0.45
+				end
+			end
+
+			telescope.setup({
+				defaults = {
+					sorting_strategy = "descending",
+					color_devicons = true,
+					winblend = 0, -- global
+					layout_strategy = get_layout(),
+					layout_config = {
+						width = 0.95,
+						height = 0.95,
+						prompt_position = "top",
+						horizontal = {
+							preview_width = 0.5, -- only horizontal uses preview_width
+						},
+						vertical = {
+							preview_height = get_vertical_preview_height(), -- only vertical uses preview_height
+						},
 					},
 				},
-				keymap = {
-					builtin = {
-						["<C-d>"] = "preview-page-down",
-						["<C-u>"] = "preview-page-up",
+
+				pickers = {
+					buffers = {
+						layout_strategy = get_layout(),
+						layout_config = {
+							vertical = {
+								preview_height = get_vertical_preview_height(),
+							},
+						},
+						sort_lastused = true,
+						ignore_current_buffer = true,
+					},
+					find_files = {
+						layout_strategy = get_layout(),
+						layout_config = {
+							vertical = {
+								preview_height = get_vertical_preview_height(),
+							},
+						},
+					},
+					live_grep = {
+						layout_strategy = get_layout(),
+						layout_config = {
+							vertical = {
+								preview_height = get_vertical_preview_height(),
+							},
+						},
+					},
+				},
+
+				extensions = {
+					["ui-select"] = { themes.get_dropdown({}) },
+					fzf = {
+						fuzzy = true,
+						override_generic_sorter = true,
+						override_file_sorter = true,
+						case_mode = "smart_case",
 					},
 				},
 			})
 
-			-- Keymaps (Telescope → fzf-lua equivalents)
-			vim.keymap.set("n", "<leader>o", fzf.files, { desc = "Find files" })
-			vim.keymap.set("n", "<leader>f", fzf.live_grep, { desc = "Live grep" })
-			vim.keymap.set("n", "<leader>fw", fzf.grep_cword, { desc = "Grep word under cursor" })
-			vim.keymap.set("n", "<leader><leader>", fzf.buffers, { desc = "Buffers" })
-			vim.keymap.set("n", "<leader>oo", fzf.oldfiles, { desc = "Recent files" })
-			vim.keymap.set("n", "<leader>sd", fzf.diagnostics_document, { desc = "Diagnostics" })
-			vim.keymap.set("n", "<leader>/", fzf.lgrep_curbuf, { desc = "Search in buffer" })
-			vim.keymap.set("n", "<leader>c", function()
-				fzf.files({ cwd = vim.fn.stdpath("config") })
-			end, { desc = "Neovim config files" })
+			-- Load extensions
+			pcall(telescope.load_extension, "fzf")
+			pcall(telescope.load_extension, "ui-select")
+
+			-- Keymaps
+			local builtin = require("telescope.builtin")
+			vim.keymap.set("n", "<leader>o", builtin.find_files, { desc = "Find files" })
+			vim.keymap.set("n", "<leader>gb", builtin.git_branches, { desc = "Git branches" })
+			vim.keymap.set("n", "<leader>fw", builtin.grep_string, { desc = "Grep current word" })
+			vim.keymap.set("n", "<leader>/", builtin.live_grep, { desc = "Live grep" })
+			vim.keymap.set("n", "<leader><leader>", builtin.buffers, { desc = "Buffers" })
+
+			-- Dropdown fuzzy find for current buffer (small window, no preview)
+			vim.keymap.set("n", "<leader>th", function()
+				builtin.current_buffer_fuzzy_find(themes.get_dropdown({
+					winblend = 10,
+					previewer = false,
+				}))
+			end, { desc = "Fuzzy find in current buffer" })
 		end,
 	},
 	{
